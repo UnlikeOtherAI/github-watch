@@ -243,7 +243,7 @@ export function renderLanding(): string {
   <!-- Footer -->
   <footer class="border-t border-ghBorder py-8 px-4 sm:px-6">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-ghMuted">
-      <span>&copy; 2026 GH-Watch. Self-hosted GitHub Actions monitoring.</span>
+      <span>Made with love in Scotland &copy; 2026 by <a href="https://unlikeotherai.com" class="text-ghBlue hover:underline">UnlikeOtherAI.com</a></span>
       <a href="https://github.com/UnlikeOtherAI/github-watch" class="flex items-center gap-2 text-ghMuted hover:text-ghText transition-colors">
         <i class="fa-brands fa-github"></i>
         GitHub
