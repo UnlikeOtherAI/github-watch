@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../lib/api";
 
 interface Repo {
@@ -15,130 +15,76 @@ interface Workflow {
   path: string;
 }
 
+interface WatchedWorkflow {
+  workflowId: number;
+  workflowName: string;
+  workflowPath: string;
+}
+
 interface WatchedRepo {
   owner: string;
   repo: string;
-  workflowIds: number[];
+  watchedWorkflows: WatchedWorkflow[];
 }
 
 function RepoCard({
   repo,
-  watched,
-  onSaved,
+  checked,
+  onToggleRepo,
+  workflows,
+  selectedWorkflows,
+  onToggleWorkflow,
+  onSelectAllWorkflows,
+  onDeselectAllWorkflows,
+  loadingWorkflows,
+  onExpand,
 }: {
   repo: Repo;
-  watched: WatchedRepo | undefined;
-  onSaved: () => void;
+  checked: boolean;
+  onToggleRepo: () => void;
+  workflows: Workflow[] | null;
+  selectedWorkflows: Set<number>;
+  onToggleWorkflow: (id: number) => void;
+  onSelectAllWorkflows: () => void;
+  onDeselectAllWorkflows: () => void;
+  loadingWorkflows: boolean;
+  onExpand: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [loadingWorkflows, setLoadingWorkflows] = useState(false);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [saving, setSaving] = useState(false);
-  const [removing, setRemoving] = useState(false);
 
-  const isWatched = watched !== undefined;
-
-  useEffect(() => {
-    if (expanded && workflows.length === 0) {
-      setLoadingWorkflows(true);
-      apiFetch<{ workflows: Workflow[] }>(
-        `/repos/${repo.owner}/${repo.name}/workflows`,
-      )
-        .then((data) => {
-          setWorkflows(data.workflows);
-          if (watched) {
-            setSelected(new Set(watched.workflowIds));
-          }
-        })
-        .catch(() => {})
-        .finally(() => setLoadingWorkflows(false));
-    }
-  }, [expanded, repo.owner, repo.name, watched, workflows.length]);
-
-  useEffect(() => {
-    if (watched) {
-      setSelected(new Set(watched.workflowIds));
-    }
-  }, [watched]);
-
-  function toggleWorkflow(id: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function selectAll() {
-    setSelected(new Set(workflows.map((w) => w.id)));
-  }
-
-  function deselectAll() {
-    setSelected(new Set());
-  }
-
-  async function save() {
-    setSaving(true);
-    try {
-      await apiFetch("/repos/watch", {
-        method: "POST",
-        body: JSON.stringify({
-          owner: repo.owner,
-          repo: repo.name,
-          workflows: workflows
-            .filter((w) => selected.has(w.id))
-            .map((w) => ({ id: w.id, name: w.name, path: w.path })),
-        }),
-      });
-      onSaved();
-    } catch {
-      // error handled by apiFetch
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function remove() {
-    setRemoving(true);
-    try {
-      await apiFetch(`/repos/watch/${repo.owner}/${repo.name}`, {
-        method: "DELETE",
-      });
-      setSelected(new Set());
-      onSaved();
-    } catch {
-      // error handled by apiFetch
-    } finally {
-      setRemoving(false);
-    }
+  function handleExpand() {
+    const next = !expanded;
+    setExpanded(next);
+    if (next) onExpand();
   }
 
   return (
     <div className="rounded-md border border-[#30363d] bg-[#161b22]">
-      {/* Collapsed header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#1c2128]"
-      >
-        <i
-          className={`fa-solid fa-chevron-right text-xs text-[#8b949e] transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
-        />
-        <span className="flex-1 text-sm font-medium text-[#e6edf3]">
-          {repo.fullName}
-        </span>
+      <div className="flex w-full items-center gap-3 px-4 py-3">
+        <button
+          onClick={handleExpand}
+          className="flex flex-1 items-center gap-3 text-left transition-colors hover:bg-[#1c2128] -my-3 -ml-4 py-3 pl-4 rounded-l-md"
+        >
+          <i
+            className={`fa-solid fa-chevron-right text-xs text-[#8b949e] transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+          />
+          <span className="flex-1 text-sm font-medium text-[#e6edf3]">
+            {repo.fullName}
+          </span>
+        </button>
         {repo.private && (
           <span className="rounded-md bg-[#30363d] px-1.5 py-0.5 text-[10px] font-medium text-[#8b949e]">
             Private
           </span>
         )}
-        {isWatched && (
-          <span className="h-2 w-2 rounded-full bg-[#58a6ff]" title="Watched" />
-        )}
-      </button>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggleRepo}
+          className="h-4 w-4 shrink-0 cursor-pointer rounded border-[#30363d] bg-[#0d1117] accent-[#58a6ff]"
+        />
+      </div>
 
-      {/* Expanded content */}
       {expanded && (
         <div className="border-t border-[#30363d] px-4 py-3">
           {loadingWorkflows ? (
@@ -146,29 +92,26 @@ function RepoCard({
               <i className="fa-solid fa-spinner fa-spin" />
               Loading workflows...
             </div>
-          ) : workflows.length === 0 ? (
+          ) : !workflows || workflows.length === 0 ? (
             <p className="py-2 text-sm text-[#8b949e]">
               No workflows found in this repo.
             </p>
           ) : (
             <>
-              {/* Select controls */}
               <div className="mb-3 flex gap-3 text-xs">
                 <button
-                  onClick={selectAll}
+                  onClick={onSelectAllWorkflows}
                   className="text-[#58a6ff] hover:underline"
                 >
                   Select all
                 </button>
                 <button
-                  onClick={deselectAll}
+                  onClick={onDeselectAllWorkflows}
                   className="text-[#58a6ff] hover:underline"
                 >
                   Deselect all
                 </button>
               </div>
-
-              {/* Workflow checkboxes */}
               <div className="space-y-2">
                 {workflows.map((wf) => (
                   <label
@@ -177,8 +120,8 @@ function RepoCard({
                   >
                     <input
                       type="checkbox"
-                      checked={selected.has(wf.id)}
-                      onChange={() => toggleWorkflow(wf.id)}
+                      checked={selectedWorkflows.has(wf.id)}
+                      onChange={() => onToggleWorkflow(wf.id)}
                       className="h-4 w-4 rounded border-[#30363d] bg-[#0d1117] accent-[#58a6ff]"
                     />
                     <span className="text-sm text-[#e6edf3]">{wf.name}</span>
@@ -187,28 +130,6 @@ function RepoCard({
                     </span>
                   </label>
                 ))}
-              </div>
-
-              {/* Actions */}
-              <div className="mt-4 flex items-center gap-3">
-                <button
-                  onClick={save}
-                  disabled={saving || selected.size === 0}
-                  className="flex items-center gap-2 rounded-md bg-[#238636] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#2ea043] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {saving && <i className="fa-solid fa-spinner fa-spin" />}
-                  {isWatched ? "Update" : "Save"}
-                </button>
-                {isWatched && (
-                  <button
-                    onClick={remove}
-                    disabled={removing}
-                    className="flex items-center gap-2 rounded-md border border-[#30363d] bg-transparent px-4 py-1.5 text-sm text-[#f85149] transition-colors hover:border-[#f85149]/40 hover:bg-[#f85149]/10 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {removing && <i className="fa-solid fa-spinner fa-spin" />}
-                    Remove
-                  </button>
-                )}
               </div>
             </>
           )}
@@ -223,40 +144,62 @@ export function Setup() {
   const [watchedRepos, setWatchedRepos] = useState<WatchedRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [filterWorkflows, setFilterWorkflows] = useState(false);
   const [repoHasWorkflows, setRepoHasWorkflows] = useState<Map<number, boolean>>(new Map());
   const [filterLoading, setFilterLoading] = useState(false);
   const [search, setSearch] = useState("");
 
-  function fetchAll() {
+  // Lifted state: which repos are checked, their workflows, and selections
+  const [checkedRepos, setCheckedRepos] = useState<Set<string>>(new Set());
+  const [repoWorkflows, setRepoWorkflows] = useState<Map<string, Workflow[]>>(new Map());
+  const [repoLoadingWorkflows, setRepoLoadingWorkflows] = useState<Set<string>>(new Set());
+  const [repoSelections, setRepoSelections] = useState<Map<string, Set<number>>>(new Map());
+
+  const repoKey = (r: { owner: string; name?: string; repo?: string }) =>
+    `${r.owner}/${r.name ?? r.repo}`;
+
+  const fetchAll = useCallback(() => {
     setRefreshing(true);
     Promise.all([
       apiFetch<{ repos: Repo[] }>("/repos/available"),
       apiFetch<{ repos: WatchedRepo[] }>("/repos/watched"),
     ])
       .then(([available, watched]) => {
-        setRepos(
-          available.repos.sort((a, b) =>
-            a.fullName.localeCompare(b.fullName),
-          ),
+        const sorted = available.repos.sort((a, b) =>
+          a.fullName.localeCompare(b.fullName),
         );
+        setRepos(sorted);
         setWatchedRepos(watched.repos);
+
+        // Initialize checked state and selections from watched repos
+        const checked = new Set<string>();
+        const selections = new Map<string, Set<number>>();
+        for (const w of watched.repos) {
+          const key = `${w.owner}/${w.repo}`;
+          checked.add(key);
+          selections.set(
+            key,
+            new Set(w.watchedWorkflows.map((ww) => ww.workflowId)),
+          );
+        }
+        setCheckedRepos(checked);
+        setRepoSelections(selections);
       })
       .catch(() => {})
       .finally(() => {
         setLoading(false);
         setRefreshing(false);
       });
-  }
+  }, []);
 
   useEffect(() => {
     fetchAll();
-  }, []);
+  }, [fetchAll]);
 
-  // When filter is toggled on, check all repos for workflows
+  // Filter: check all repos for workflows
   useEffect(() => {
     if (!filterWorkflows || repos.length === 0) return;
-
     const unchecked = repos.filter((r) => !repoHasWorkflows.has(r.id));
     if (unchecked.length === 0) return;
 
@@ -266,7 +209,17 @@ export function Setup() {
         apiFetch<{ workflows: Workflow[] }>(
           `/repos/${repo.owner}/${repo.name}/workflows`,
         )
-          .then((data) => ({ id: repo.id, has: data.workflows.length > 0 }))
+          .then((data) => {
+            // Cache workflows while we're at it
+            if (data.workflows.length > 0) {
+              setRepoWorkflows((prev) => {
+                const next = new Map(prev);
+                next.set(repoKey(repo), data.workflows);
+                return next;
+              });
+            }
+            return { id: repo.id, has: data.workflows.length > 0 };
+          })
           .catch(() => ({ id: repo.id, has: false })),
       ),
     ).then((results) => {
@@ -279,17 +232,212 @@ export function Setup() {
     });
   }, [filterWorkflows, repos, repoHasWorkflows]);
 
-  function findWatched(repo: Repo): WatchedRepo | undefined {
-    return watchedRepos.find(
-      (w) => w.owner === repo.owner && w.repo === repo.name,
-    );
+  function toggleRepo(repo: Repo) {
+    const key = repoKey(repo);
+    setCheckedRepos((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+        // Default: select all workflows if we have them cached
+        const cached = repoWorkflows.get(key);
+        if (cached && !repoSelections.has(key)) {
+          setRepoSelections((prev) => {
+            const n = new Map(prev);
+            n.set(key, new Set(cached.map((w) => w.id)));
+            return n;
+          });
+        }
+      }
+      return next;
+    });
+  }
+
+  function selectAllVisible() {
+    const keys = new Set(checkedRepos);
+    for (const r of filteredRepos) {
+      keys.add(repoKey(r));
+    }
+    setCheckedRepos(keys);
+  }
+
+  function deselectAllVisible() {
+    const keys = new Set(checkedRepos);
+    for (const r of filteredRepos) {
+      keys.delete(repoKey(r));
+    }
+    setCheckedRepos(keys);
+  }
+
+  function loadWorkflows(repo: Repo) {
+    const key = repoKey(repo);
+    if (repoWorkflows.has(key) || repoLoadingWorkflows.has(key)) return;
+
+    setRepoLoadingWorkflows((prev) => new Set(prev).add(key));
+    apiFetch<{ workflows: Workflow[] }>(
+      `/repos/${repo.owner}/${repo.name}/workflows`,
+    )
+      .then((data) => {
+        setRepoWorkflows((prev) => {
+          const next = new Map(prev);
+          next.set(key, data.workflows);
+          return next;
+        });
+        // If checked and no selection yet, default to all
+        if (checkedRepos.has(key) && !repoSelections.has(key)) {
+          setRepoSelections((prev) => {
+            const n = new Map(prev);
+            n.set(key, new Set(data.workflows.map((w) => w.id)));
+            return n;
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setRepoLoadingWorkflows((prev) => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      });
+  }
+
+  function toggleWorkflow(repo: Repo, workflowId: number) {
+    const key = repoKey(repo);
+    setRepoSelections((prev) => {
+      const next = new Map(prev);
+      const sel = new Set(prev.get(key) ?? []);
+      if (sel.has(workflowId)) sel.delete(workflowId);
+      else sel.add(workflowId);
+      next.set(key, sel);
+      return next;
+    });
+  }
+
+  function selectAllWorkflows(repo: Repo) {
+    const key = repoKey(repo);
+    const wfs = repoWorkflows.get(key);
+    if (!wfs) return;
+    setRepoSelections((prev) => {
+      const next = new Map(prev);
+      next.set(key, new Set(wfs.map((w) => w.id)));
+      return next;
+    });
+  }
+
+  function deselectAllWorkflows(repo: Repo) {
+    const key = repoKey(repo);
+    setRepoSelections((prev) => {
+      const next = new Map(prev);
+      next.set(key, new Set());
+      return next;
+    });
+  }
+
+  async function saveAll() {
+    setSaving(true);
+    try {
+      const wasWatched = new Set(watchedRepos.map((w) => `${w.owner}/${w.repo}`));
+      const promises: Promise<unknown>[] = [];
+
+      // Fetch missing workflows for checked repos
+      const needWorkflows = Array.from(checkedRepos).filter(
+        (key) => !repoWorkflows.has(key),
+      );
+      if (needWorkflows.length > 0) {
+        const fetched = await Promise.all(
+          needWorkflows.map((key) => {
+            const [owner, name] = key.split("/");
+            return apiFetch<{ workflows: Workflow[] }>(
+              `/repos/${owner}/${name}/workflows`,
+            )
+              .then((data) => ({ key, workflows: data.workflows }))
+              .catch(() => ({ key, workflows: [] as Workflow[] }));
+          }),
+        );
+        for (const { key, workflows } of fetched) {
+          setRepoWorkflows((prev) => {
+            const next = new Map(prev);
+            next.set(key, workflows);
+            return next;
+          });
+          if (!repoSelections.has(key)) {
+            setRepoSelections((prev) => {
+              const n = new Map(prev);
+              n.set(key, new Set(workflows.map((w) => w.id)));
+              return n;
+            });
+          }
+        }
+      }
+
+      // Save checked repos
+      for (const key of checkedRepos) {
+        const [owner, name] = key.split("/");
+        const wfs = repoWorkflows.get(key) ?? [];
+        const sel = repoSelections.get(key) ?? new Set(wfs.map((w) => w.id));
+        const selected = wfs
+          .filter((w) => sel.has(w.id))
+          .map((w) => ({ id: w.id, name: w.name, path: w.path }));
+
+        if (selected.length > 0) {
+          promises.push(
+            apiFetch("/repos/watch", {
+              method: "POST",
+              body: JSON.stringify({ owner, repo: name, workflows: selected }),
+            }),
+          );
+        }
+      }
+
+      // Remove unchecked repos that were previously watched
+      for (const key of wasWatched) {
+        if (!checkedRepos.has(key)) {
+          const [owner, name] = key.split("/");
+          promises.push(
+            apiFetch(`/repos/watch/${owner}/${name}`, { method: "DELETE" }),
+          );
+        }
+      }
+
+      await Promise.all(promises);
+      fetchAll();
+    } catch {
+      // errors handled by apiFetch
+    } finally {
+      setSaving(false);
+    }
   }
 
   const filteredRepos = repos.filter((r) => {
     if (filterWorkflows && repoHasWorkflows.get(r.id) !== true) return false;
-    if (search && !r.fullName.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search && !r.fullName.toLowerCase().includes(search.toLowerCase()))
+      return false;
     return true;
   });
+
+  const hasChanges = (() => {
+    const wasWatched = new Set(watchedRepos.map((w) => `${w.owner}/${w.repo}`));
+    for (const key of checkedRepos) {
+      if (!wasWatched.has(key)) return true;
+    }
+    for (const key of wasWatched) {
+      if (!checkedRepos.has(key)) return true;
+    }
+    // Check if workflow selections changed
+    for (const w of watchedRepos) {
+      const key = `${w.owner}/${w.repo}`;
+      const sel = repoSelections.get(key);
+      if (!sel) continue;
+      const orig = new Set(w.watchedWorkflows.map((ww) => ww.workflowId));
+      if (sel.size !== orig.size) return true;
+      for (const id of sel) {
+        if (!orig.has(id)) return true;
+      }
+    }
+    return false;
+  })();
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -299,7 +447,6 @@ export function Setup() {
           Setup Watched Repos
         </h1>
         <div className="flex items-center gap-4">
-          {/* Has-workflows toggle */}
           <label className="flex cursor-pointer items-center gap-2">
             <span className="text-xs text-[#8b949e]">Has workflows</span>
             <button
@@ -313,20 +460,21 @@ export function Setup() {
               />
             </button>
           </label>
-          {/* Refresh button */}
           <button
             onClick={fetchAll}
             disabled={refreshing}
             className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-3 py-1.5 text-xs text-[#e6edf3] transition-colors hover:border-[#8b949e] disabled:opacity-50"
           >
-            <i className={`fa-solid fa-arrows-rotate text-[10px] ${refreshing ? "fa-spin" : ""}`} />
+            <i
+              className={`fa-solid fa-arrows-rotate text-[10px] ${refreshing ? "fa-spin" : ""}`}
+            />
             Refresh
           </button>
         </div>
       </div>
 
       {/* Search */}
-      <div className="mb-4">
+      <div className="mb-2">
         <div className="relative">
           <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#8b949e]" />
           <input
@@ -338,6 +486,34 @@ export function Setup() {
           />
         </div>
       </div>
+
+      {/* Select all + Save all row */}
+      {!loading && filteredRepos.length > 0 && (
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex gap-3 text-xs">
+            <button
+              onClick={selectAllVisible}
+              className="text-[#58a6ff] hover:underline"
+            >
+              Select all
+            </button>
+            <button
+              onClick={deselectAllVisible}
+              className="text-[#58a6ff] hover:underline"
+            >
+              Deselect all
+            </button>
+          </div>
+          <button
+            onClick={saveAll}
+            disabled={saving || !hasChanges}
+            className="flex items-center gap-2 rounded-md bg-[#238636] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#2ea043] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving && <i className="fa-solid fa-spinner fa-spin" />}
+            Save all
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-2">
@@ -357,7 +533,9 @@ export function Setup() {
         <div className="rounded-md border border-[#30363d] bg-[#161b22] px-6 py-12 text-center">
           <i className="fa-solid fa-folder-open mb-3 text-3xl text-[#30363d]" />
           <p className="text-[#e6edf3]">
-            {filterWorkflows ? "No repos with workflows found" : "No repositories found"}
+            {filterWorkflows
+              ? "No repos with workflows found"
+              : "No repositories found"}
           </p>
           <p className="mt-1 text-sm text-[#8b949e]">
             {filterWorkflows
@@ -371,8 +549,17 @@ export function Setup() {
             <RepoCard
               key={repo.id}
               repo={repo}
-              watched={findWatched(repo)}
-              onSaved={fetchAll}
+              checked={checkedRepos.has(repoKey(repo))}
+              onToggleRepo={() => toggleRepo(repo)}
+              workflows={repoWorkflows.get(repoKey(repo)) ?? null}
+              selectedWorkflows={
+                repoSelections.get(repoKey(repo)) ?? new Set()
+              }
+              onToggleWorkflow={(id) => toggleWorkflow(repo, id)}
+              onSelectAllWorkflows={() => selectAllWorkflows(repo)}
+              onDeselectAllWorkflows={() => deselectAllWorkflows(repo)}
+              loadingWorkflows={repoLoadingWorkflows.has(repoKey(repo))}
+              onExpand={() => loadWorkflows(repo)}
             />
           ))}
         </div>
