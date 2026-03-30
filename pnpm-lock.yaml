@@ -30,6 +30,19 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  web:
+    dependencies:
+      hono:
+        specifier: ^4
+        version: 4.12.9
+    devDependencies:
+      '@types/bun':
+        specifier: latest
+        version: 1.3.11
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
 packages:
 
   '@drizzle-team/brocli@0.10.2':
