@@ -7,11 +7,15 @@ import { health } from "./routes/health";
 import { auth } from "./routes/auth";
 import { repos } from "./routes/repos";
 import { workflows } from "./routes/workflows";
+import { renderLanding } from "../../web/src/views/landing";
 
 const app = new Hono();
 
 app.use("*", logger());
 app.use("/api/*", cors());
+
+// Landing page at root
+app.get("/", (c) => c.html(renderLanding()));
 
 app.route("/api", health);
 app.route("/api/auth", auth);
