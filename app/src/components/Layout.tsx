@@ -14,10 +14,10 @@ export function Layout() {
 
   return (
     <div className="flex h-screen bg-[#0d1117]">
-      {/* Mobile overlay */}
+      {/* Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-20 bg-black/50"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -27,7 +27,6 @@ export function Layout() {
         className={`
           fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-[#30363d] bg-[#161b22]
           transition-transform duration-200 ease-in-out
-          lg:static lg:translate-x-0
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -91,14 +90,13 @@ export function Layout() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#30363d] bg-[#161b22] px-4">
-          {/* Mobile burger */}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-md p-2 text-[#8b949e] hover:text-[#e6edf3] lg:hidden"
+            className="rounded-md p-2 text-[#8b949e] hover:text-[#e6edf3]"
           >
             <i className="fa-solid fa-bars" />
           </button>
-          <div className="lg:flex-1" />
+          <div className="flex-1" />
 
           {/* User avatar */}
           {user && (
