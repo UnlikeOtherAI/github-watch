@@ -145,7 +145,18 @@ export function Setup() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [filterWorkflows, setFilterWorkflows] = useState(false);
+  const [filterWorkflows, setFilterWorkflows] = useState(() => {
+    const saved = document.cookie.match(/(?:^|; )ghw_filter_wf=([^;]*)/);
+    return saved ? saved[1] === "1" : true;
+  });
+
+  function toggleFilterWorkflows() {
+    setFilterWorkflows((prev) => {
+      const next = !prev;
+      document.cookie = `ghw_filter_wf=${next ? "1" : "0"};path=/;max-age=${365 * 24 * 60 * 60}`;
+      return next;
+    });
+  }
   const [repoHasWorkflows, setRepoHasWorkflows] = useState<Map<number, boolean>>(new Map());
   const [filterLoading, setFilterLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -452,7 +463,7 @@ export function Setup() {
             <button
               role="switch"
               aria-checked={filterWorkflows}
-              onClick={() => setFilterWorkflows(!filterWorkflows)}
+              onClick={toggleFilterWorkflows}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${filterWorkflows ? "bg-[#238636]" : "bg-[#30363d]"}`}
             >
               <span
