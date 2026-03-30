@@ -91,13 +91,13 @@ auth.get("/callback", async (c) => {
     userId = newUser.id;
   }
 
-  const sessionToken = createSession(userId);
+  const sessionToken = await createSession(userId);
   setSessionCookie(c, sessionToken);
   return c.redirect("/app");
 });
 
 auth.get("/me", async (c) => {
-  const userId = getSession(c);
+  const userId = await getSession(c);
   if (!userId) return c.json({ user: null }, 401);
 
   const user = await db.query.users.findFirst({
@@ -107,8 +107,8 @@ auth.get("/me", async (c) => {
   return c.json({ user });
 });
 
-auth.post("/logout", (c) => {
-  clearSession(c);
+auth.post("/logout", async (c) => {
+  await clearSession(c);
   return c.redirect("/");
 });
 

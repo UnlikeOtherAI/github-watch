@@ -1,24 +1,36 @@
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Context } from "hono";
+import { db } from "../db";
+import { sessions } from "../db/schema";
+import { eq, lt } from "drizzle-orm";
 
 const SESSION_COOKIE = "gh_watch_session";
-const sessions = new Map<string, { userId: string; expiresAt: number }>();
+const SESSION_MAX_AGE_DAYS = 90;
 
-export function createSession(userId: string): string {
+export async function createSession(userId: string): Promise<string> {
   const token = crypto.randomUUID();
-  const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
-  sessions.set(token, { userId, expiresAt });
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+  await db.insert(sessions).values({ token, userId, expiresAt });
   return token;
 }
 
-export function getSession(c: Context): string | null {
+export async function getSession(c: Context): Promise<string | null> {
   const token = getCookie(c, SESSION_COOKIE);
   if (!token) return null;
-  const session = sessions.get(token);
-  if (!session || session.expiresAt < Date.now()) {
-    if (token) sessions.delete(token);
+
+  const session = await db.query.sessions.findFirst({
+    where: eq(sessions.token, token),
+  });
+
+  if (!session || session.expiresAt < new Date()) {
+    if (session) await db.delete(sessions).where(eq(sessions.token, token));
     return null;
   }
+
+  // Extend session on activity — reset to 90 days from now
+  const newExpiry = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+  await db.update(sessions).set({ expiresAt: newExpiry }).where(eq(sessions.token, token));
+
   return session.userId;
 }
 
@@ -28,12 +40,16 @@ export function setSessionCookie(c: Context, token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "Lax",
     path: "/",
-    maxAge: 7 * 24 * 60 * 60,
+    maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60,
   });
 }
 
-export function clearSession(c: Context) {
+export async function clearSession(c: Context) {
   const token = getCookie(c, SESSION_COOKIE);
-  if (token) sessions.delete(token);
+  if (token) await db.delete(sessions).where(eq(sessions.token, token));
   deleteCookie(c, SESSION_COOKIE, { path: "/" });
+}
+
+export async function cleanExpiredSessions() {
+  await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
 }

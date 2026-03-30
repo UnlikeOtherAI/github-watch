@@ -30,9 +30,21 @@ export const watchedWorkflows = pgTable("watched_workflows", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const sessions = pgTable("sessions", {
+  token: text("token").primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   watchedRepos: many(watchedRepos),
+  sessions: many(sessions),
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, { fields: [sessions.userId], references: [users.id] }),
 }));
 
 export const watchedReposRelations = relations(watchedRepos, ({ one, many }) => ({

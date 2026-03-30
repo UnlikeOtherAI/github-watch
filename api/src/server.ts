@@ -7,7 +7,8 @@ import { health } from "./routes/health";
 import { auth } from "./routes/auth";
 import { repos } from "./routes/repos";
 import { workflows } from "./routes/workflows";
-import { renderLanding } from "../../web/src/views/landing";
+import { renderLanding } from "./views/landing";
+import { loadPlugins } from "./plugins/loader";
 
 const app = new Hono();
 
@@ -41,6 +42,8 @@ app.get("/app/*", async (c) => {
   }
   return c.text("App not built. Run: pnpm --filter ./app build", 404);
 });
+
+await loadPlugins(app);
 
 const port = parseInt(process.env.PORT || "3210");
 console.log(`Server running on :${port}`);

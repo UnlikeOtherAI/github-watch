@@ -4,8 +4,10 @@ export function Login() {
       <div className="flex flex-col items-center gap-8">
         {/* Logo */}
         <img
-          src="/app/logo.png"
+          src="/app/icon-v2-512.png"
           alt="GH-Watch"
+          width="512"
+          height="512"
           className="h-[150px] w-[150px] rounded-2xl"
         />
 
