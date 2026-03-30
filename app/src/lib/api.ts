@@ -10,7 +10,6 @@ export async function apiFetch<T>(
     headers: { "Content-Type": "application/json", ...opts?.headers },
   });
   if (res.status === 401) {
-    window.location.href = "/api/auth/login";
     throw new Error("Unauthorized");
   }
   if (!res.ok) throw new Error(`API ${res.status}`);

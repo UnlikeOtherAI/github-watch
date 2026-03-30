@@ -8,17 +8,9 @@ const navItems = [
 ];
 
 export function Layout() {
-  const { user, loading } = useUser();
+  const { user } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-[#0d1117]">
-        <i className="fa-solid fa-spinner fa-spin text-2xl text-[#8b949e]" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen bg-[#0d1117]">
