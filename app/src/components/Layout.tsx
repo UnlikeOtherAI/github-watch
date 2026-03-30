@@ -123,10 +123,11 @@ export function Layout() {
         {/* Logout */}
         <div className="border-t px-3 py-3" style={{ borderColor: "var(--ghw-border)" }}>
           <a
-            href="/api/auth/logout"
+            href="#"
             onClick={(e) => {
               e.preventDefault();
-              fetch("/api/auth/logout", {
+              const apiBase = import.meta.env.VITE_API_URL || "/api";
+              fetch(`${apiBase}/auth/logout`, {
                 method: "POST",
                 credentials: "include",
               }).then(() => {

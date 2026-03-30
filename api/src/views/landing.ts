@@ -1,4 +1,5 @@
 export function renderLanding(): string {
+  const appUrl = process.env.APP_URL || "/app";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -71,10 +72,10 @@ export function renderLanding(): string {
   <nav class="fixed top-0 left-0 right-0 z-50 bg-ghBg border-b border-ghBorder">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
       <a href="/" class="flex items-center gap-2 text-white font-bold text-lg">
-        <img src="/app/icon-v1-512.png" alt="GH-Watch" width="48" height="48" class="rounded-lg">
+        <img src="/static/icon-v1-512.png" alt="GH-Watch" width="48" height="48" class="rounded-lg">
         GH-Watch
       </a>
-      <a href="/app"
+      <a href="${appUrl}"
          class="inline-flex items-center gap-2 bg-ghBtnGreen hover:bg-ghBtnGreenHover text-white text-sm font-semibold px-4 py-2 rounded-gh transition-colors">
         <i class="fa-brands fa-github"></i>
         Sign in with GitHub
@@ -92,7 +93,7 @@ export function renderLanding(): string {
         Select the repos and workflows you care about. Get a real-time dashboard for all your CI/CD runs. Self-hosted, fast, no bloat.
       </p>
       <div class="mt-10 animate-fade-in-up animate-delay-2">
-        <a href="/app"
+        <a href="${appUrl}"
            class="inline-flex items-center gap-3 bg-ghBtnGreen hover:bg-ghBtnGreenHover text-white font-semibold text-lg px-8 py-3.5 rounded-gh transition-colors shadow-lg shadow-ghBtnGreen/20">
           <i class="fa-brands fa-github text-xl"></i>
           Get Started with GitHub
@@ -175,7 +176,7 @@ export function renderLanding(): string {
             <li class="flex items-center gap-2"><i class="fa-solid fa-check text-ghGreen"></i> Automatic updates</li>
             <li class="flex items-center gap-2"><i class="fa-solid fa-check text-ghGreen"></i> Always online monitoring</li>
           </ul>
-          <a href="/app"
+          <a href="${appUrl}"
              class="flex w-full items-center justify-center gap-2 bg-ghBtnGreen hover:bg-ghBtnGreenHover text-white font-semibold py-3 rounded-gh transition-colors">
             <i class="fa-brands fa-github"></i>
             Get Started
@@ -229,7 +230,7 @@ export function renderLanding(): string {
         <h2 class="text-3xl sm:text-4xl font-bold text-ghText">Ready to watch your workflows?</h2>
         <p class="mt-4 text-ghMuted text-lg max-w-lg mx-auto">Stop juggling tabs. See every CI/CD run in one place.</p>
         <div class="mt-8">
-          <a href="/app"
+          <a href="${appUrl}"
              class="inline-flex items-center gap-3 bg-ghBtnGreen hover:bg-ghBtnGreenHover text-white font-semibold text-lg px-8 py-3.5 rounded-gh transition-colors shadow-lg shadow-ghBtnGreen/20">
             <i class="fa-brands fa-github text-xl"></i>
             Get Started with GitHub

@@ -35,19 +35,25 @@ export async function getSession(c: Context): Promise<string | null> {
 }
 
 export function setSessionCookie(c: Context, token: string) {
+  const baseDomain = process.env.BASE_DOMAIN;
   setCookie(c, SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "Lax",
     path: "/",
     maxAge: SESSION_MAX_AGE_DAYS * 24 * 60 * 60,
+    ...(baseDomain ? { domain: `.${baseDomain}` } : {}),
   });
 }
 
 export async function clearSession(c: Context) {
   const token = getCookie(c, SESSION_COOKIE);
   if (token) await db.delete(sessions).where(eq(sessions.token, token));
-  deleteCookie(c, SESSION_COOKIE, { path: "/" });
+  const baseDomain = process.env.BASE_DOMAIN;
+  deleteCookie(c, SESSION_COOKIE, {
+    path: "/",
+    ...(baseDomain ? { domain: `.${baseDomain}` } : {}),
+  });
 }
 
 export async function cleanExpiredSessions() {

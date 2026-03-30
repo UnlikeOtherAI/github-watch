@@ -13,6 +13,8 @@ RUN bun install
 FROM deps AS build-app
 WORKDIR /app
 COPY app/ app/
+ARG VITE_API_URL=https://api.ghwatch.live
+ENV VITE_API_URL=$VITE_API_URL
 RUN cd app && bun run build
 
 # Production

@@ -14,11 +14,16 @@ const auth = new Hono();
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID!;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET!;
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:3210";
+const APP_URL = process.env.APP_URL || "/app";
 
 auth.get("/login", (c) => {
+  // Derive callback from current request URL to work with both
+  // host-based (api.ghwatch.live/auth/callback) and path-based (/api/auth/callback) routing
+  const url = new URL(c.req.url);
+  const callbackUrl = `${url.origin}${url.pathname.replace(/\/login$/, "/callback")}`;
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
-    redirect_uri: `${PUBLIC_URL}/api/auth/callback`,
+    redirect_uri: callbackUrl,
     scope: "repo",
   });
   return c.redirect(
@@ -93,7 +98,7 @@ auth.get("/callback", async (c) => {
 
   const sessionToken = await createSession(userId);
   setSessionCookie(c, sessionToken);
-  return c.redirect("/app");
+  return c.redirect(APP_URL);
 });
 
 auth.get("/me", async (c) => {
