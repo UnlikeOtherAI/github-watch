@@ -59,21 +59,28 @@ function RepoCard({
   }
 
   return (
-    <div className="rounded-md border border-[#30363d] bg-[#161b22]">
+    <div
+      className="rounded-md border"
+      style={{ borderColor: "var(--ghw-border)", backgroundColor: "var(--ghw-bg-card)" }}
+    >
       <div className="flex w-full items-center gap-3 px-4 py-3">
         <button
           onClick={handleExpand}
-          className="flex flex-1 items-center gap-3 text-left transition-colors hover:bg-[#1c2128] -my-3 -ml-4 py-3 pl-4 rounded-l-md"
+          className="flex flex-1 items-center gap-3 text-left transition-colors -my-3 -ml-4 py-3 pl-4 rounded-l-md"
         >
           <i
-            className={`fa-solid fa-chevron-right text-xs text-[#8b949e] transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+            className={`fa-solid fa-chevron-right text-xs transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+            style={{ color: "var(--ghw-text-muted)" }}
           />
-          <span className="flex-1 text-sm font-medium text-[#e6edf3]">
+          <span className="flex-1 text-sm font-medium" style={{ color: "var(--ghw-text)" }}>
             {repo.fullName}
           </span>
         </button>
         {repo.private && (
-          <span className="rounded-md bg-[#30363d] px-1.5 py-0.5 text-[10px] font-medium text-[#8b949e]">
+          <span
+            className="rounded-md px-1.5 py-0.5 text-[10px] font-medium"
+            style={{ backgroundColor: "var(--ghw-border)", color: "var(--ghw-text-muted)" }}
+          >
             Private
           </span>
         )}
@@ -81,19 +88,20 @@ function RepoCard({
           type="checkbox"
           checked={checked}
           onChange={onToggleRepo}
-          className="h-4 w-4 shrink-0 cursor-pointer rounded border-[#30363d] bg-[#0d1117] accent-[#58a6ff]"
+          className="h-4 w-4 shrink-0 cursor-pointer rounded"
+          style={{ accentColor: "var(--ghw-blue)" }}
         />
       </div>
 
       {expanded && (
-        <div className="border-t border-[#30363d] px-4 py-3">
+        <div className="border-t px-4 py-3" style={{ borderColor: "var(--ghw-border)" }}>
           {loadingWorkflows ? (
-            <div className="flex items-center gap-2 py-4 text-sm text-[#8b949e]">
+            <div className="flex items-center gap-2 py-4 text-sm" style={{ color: "var(--ghw-text-muted)" }}>
               <i className="fa-solid fa-spinner fa-spin" />
               Loading workflows...
             </div>
           ) : !workflows || workflows.length === 0 ? (
-            <p className="py-2 text-sm text-[#8b949e]">
+            <p className="py-2 text-sm" style={{ color: "var(--ghw-text-muted)" }}>
               No workflows found in this repo.
             </p>
           ) : (
@@ -101,13 +109,15 @@ function RepoCard({
               <div className="mb-3 flex gap-3 text-xs">
                 <button
                   onClick={onSelectAllWorkflows}
-                  className="text-[#58a6ff] hover:underline"
+                  className="hover:underline"
+                  style={{ color: "var(--ghw-blue)" }}
                 >
                   Select all
                 </button>
                 <button
                   onClick={onDeselectAllWorkflows}
-                  className="text-[#58a6ff] hover:underline"
+                  className="hover:underline"
+                  style={{ color: "var(--ghw-blue)" }}
                 >
                   Deselect all
                 </button>
@@ -116,16 +126,17 @@ function RepoCard({
                 {workflows.map((wf) => (
                   <label
                     key={wf.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 hover:bg-[#1c2128]"
+                    className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5"
                   >
                     <input
                       type="checkbox"
                       checked={selectedWorkflows.has(wf.id)}
                       onChange={() => onToggleWorkflow(wf.id)}
-                      className="h-4 w-4 rounded border-[#30363d] bg-[#0d1117] accent-[#58a6ff]"
+                      className="h-4 w-4 rounded"
+                      style={{ accentColor: "var(--ghw-blue)" }}
                     />
-                    <span className="text-sm text-[#e6edf3]">{wf.name}</span>
-                    <span className="font-mono text-xs text-[#8b949e]">
+                    <span className="text-sm" style={{ color: "var(--ghw-text)" }}>{wf.name}</span>
+                    <span className="font-mono text-xs" style={{ color: "var(--ghw-text-muted)" }}>
                       {wf.path}
                     </span>
                   </label>
@@ -454,17 +465,18 @@ export function Setup() {
     <div className="mx-auto max-w-3xl">
       {/* Header row */}
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-[#e6edf3]">
+        <h1 className="text-xl font-semibold" style={{ color: "var(--ghw-text)" }}>
           Setup Watched Repos
         </h1>
         <div className="flex items-center gap-4">
           <label className="flex cursor-pointer items-center gap-2">
-            <span className="text-xs text-[#8b949e]">Has workflows</span>
+            <span className="text-xs" style={{ color: "var(--ghw-text-muted)" }}>Has workflows</span>
             <button
               role="switch"
               aria-checked={filterWorkflows}
               onClick={toggleFilterWorkflows}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${filterWorkflows ? "bg-[#238636]" : "bg-[#30363d]"}`}
+              className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200"
+              style={{ backgroundColor: filterWorkflows ? "var(--ghw-btn-green)" : "var(--ghw-border)" }}
             >
               <span
                 className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${filterWorkflows ? "translate-x-5" : "translate-x-0"}`}
@@ -474,7 +486,12 @@ export function Setup() {
           <button
             onClick={fetchAll}
             disabled={refreshing}
-            className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-3 py-1.5 text-xs text-[#e6edf3] transition-colors hover:border-[#8b949e] disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors disabled:opacity-50"
+            style={{
+              borderColor: "var(--ghw-border)",
+              backgroundColor: "var(--ghw-bg-btn)",
+              color: "var(--ghw-text)",
+            }}
           >
             <i
               className={`fa-solid fa-arrows-rotate text-[10px] ${refreshing ? "fa-spin" : ""}`}
@@ -487,13 +504,21 @@ export function Setup() {
       {/* Search */}
       <div className="mb-2">
         <div className="relative">
-          <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#8b949e]" />
+          <i
+            className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs"
+            style={{ color: "var(--ghw-text-muted)" }}
+          />
           <input
             type="text"
             placeholder="Filter repos..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border border-[#30363d] bg-[#0d1117] py-2 pl-9 pr-3 text-sm text-[#e6edf3] placeholder-[#8b949e] outline-none focus:border-[#58a6ff]"
+            className="w-full rounded-md border py-2 pl-9 pr-3 text-sm outline-none"
+            style={{
+              borderColor: "var(--ghw-border)",
+              backgroundColor: "var(--ghw-bg)",
+              color: "var(--ghw-text)",
+            }}
           />
         </div>
       </div>
@@ -504,13 +529,15 @@ export function Setup() {
           <div className="flex gap-3 text-xs">
             <button
               onClick={selectAllVisible}
-              className="text-[#58a6ff] hover:underline"
+              className="hover:underline"
+              style={{ color: "var(--ghw-blue)" }}
             >
               Select all
             </button>
             <button
               onClick={deselectAllVisible}
-              className="text-[#58a6ff] hover:underline"
+              className="hover:underline"
+              style={{ color: "var(--ghw-blue)" }}
             >
               Deselect all
             </button>
@@ -518,7 +545,8 @@ export function Setup() {
           <button
             onClick={saveAll}
             disabled={saving || !hasChanges}
-            className="flex items-center gap-2 rounded-md bg-[#238636] px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#2ea043] disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex items-center gap-2 rounded-md px-4 py-1.5 text-sm font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ backgroundColor: "var(--ghw-btn-green)" }}
           >
             {saving && <i className="fa-solid fa-spinner fa-spin" />}
             Save all
@@ -531,24 +559,28 @@ export function Setup() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-12 animate-pulse rounded-md border border-[#30363d] bg-[#161b22]"
+              className="h-12 animate-pulse rounded-md border"
+              style={{ borderColor: "var(--ghw-border)", backgroundColor: "var(--ghw-bg-card)" }}
             />
           ))}
         </div>
       ) : filterLoading ? (
-        <div className="flex items-center gap-2 py-8 text-sm text-[#8b949e]">
+        <div className="flex items-center gap-2 py-8 text-sm" style={{ color: "var(--ghw-text-muted)" }}>
           <i className="fa-solid fa-spinner fa-spin" />
           Checking repos for workflows...
         </div>
       ) : filteredRepos.length === 0 ? (
-        <div className="rounded-md border border-[#30363d] bg-[#161b22] px-6 py-12 text-center">
-          <i className="fa-solid fa-folder-open mb-3 text-3xl text-[#30363d]" />
-          <p className="text-[#e6edf3]">
+        <div
+          className="rounded-md border px-6 py-12 text-center"
+          style={{ borderColor: "var(--ghw-border)", backgroundColor: "var(--ghw-bg-card)" }}
+        >
+          <i className="fa-solid fa-folder-open mb-3 text-3xl" style={{ color: "var(--ghw-border)" }} />
+          <p style={{ color: "var(--ghw-text)" }}>
             {filterWorkflows
               ? "No repos with workflows found"
               : "No repositories found"}
           </p>
-          <p className="mt-1 text-sm text-[#8b949e]">
+          <p className="mt-1 text-sm" style={{ color: "var(--ghw-text-muted)" }}>
             {filterWorkflows
               ? "Try turning off the workflows filter."
               : "Make sure your GitHub account has access to repositories with Actions workflows."}
