@@ -87,7 +87,9 @@ function RepoCard({
         body: JSON.stringify({
           owner: repo.owner,
           repo: repo.name,
-          workflowIds: Array.from(selected),
+          workflows: workflows
+            .filter((w) => selected.has(w.id))
+            .map((w) => ({ id: w.id, name: w.name, path: w.path })),
         }),
       });
       onSaved();
@@ -220,23 +222,62 @@ export function Setup() {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [watchedRepos, setWatchedRepos] = useState<WatchedRepo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filterWorkflows, setFilterWorkflows] = useState(false);
+  const [repoHasWorkflows, setRepoHasWorkflows] = useState<Map<number, boolean>>(new Map());
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
   function fetchAll() {
+    setRefreshing(true);
     Promise.all([
       apiFetch<{ repos: Repo[] }>("/repos/available"),
       apiFetch<{ repos: WatchedRepo[] }>("/repos/watched"),
     ])
       .then(([available, watched]) => {
-        setRepos(available.repos);
+        setRepos(
+          available.repos.sort((a, b) =>
+            a.fullName.localeCompare(b.fullName),
+          ),
+        );
         setWatchedRepos(watched.repos);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   }
 
   useEffect(() => {
     fetchAll();
   }, []);
+
+  // When filter is toggled on, check all repos for workflows
+  useEffect(() => {
+    if (!filterWorkflows || repos.length === 0) return;
+
+    const unchecked = repos.filter((r) => !repoHasWorkflows.has(r.id));
+    if (unchecked.length === 0) return;
+
+    setFilterLoading(true);
+    Promise.all(
+      unchecked.map((repo) =>
+        apiFetch<{ workflows: Workflow[] }>(
+          `/repos/${repo.owner}/${repo.name}/workflows`,
+        )
+          .then((data) => ({ id: repo.id, has: data.workflows.length > 0 }))
+          .catch(() => ({ id: repo.id, has: false })),
+      ),
+    ).then((results) => {
+      setRepoHasWorkflows((prev) => {
+        const next = new Map(prev);
+        for (const r of results) next.set(r.id, r.has);
+        return next;
+      });
+      setFilterLoading(false);
+    });
+  }, [filterWorkflows, repos, repoHasWorkflows]);
 
   function findWatched(repo: Repo): WatchedRepo | undefined {
     return watchedRepos.find(
@@ -244,11 +285,59 @@ export function Setup() {
     );
   }
 
+  const filteredRepos = repos.filter((r) => {
+    if (filterWorkflows && repoHasWorkflows.get(r.id) !== true) return false;
+    if (search && !r.fullName.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 text-xl font-semibold text-[#e6edf3]">
-        Setup Watched Repos
-      </h1>
+      {/* Header row */}
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-[#e6edf3]">
+          Setup Watched Repos
+        </h1>
+        <div className="flex items-center gap-4">
+          {/* Has-workflows toggle */}
+          <label className="flex cursor-pointer items-center gap-2">
+            <span className="text-xs text-[#8b949e]">Has workflows</span>
+            <button
+              role="switch"
+              aria-checked={filterWorkflows}
+              onClick={() => setFilterWorkflows(!filterWorkflows)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${filterWorkflows ? "bg-[#238636]" : "bg-[#30363d]"}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${filterWorkflows ? "translate-x-5" : "translate-x-0"}`}
+              />
+            </button>
+          </label>
+          {/* Refresh button */}
+          <button
+            onClick={fetchAll}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 rounded-md border border-[#30363d] bg-[#21262d] px-3 py-1.5 text-xs text-[#e6edf3] transition-colors hover:border-[#8b949e] disabled:opacity-50"
+          >
+            <i className={`fa-solid fa-arrows-rotate text-[10px] ${refreshing ? "fa-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="mb-4">
+        <div className="relative">
+          <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-[#8b949e]" />
+          <input
+            type="text"
+            placeholder="Filter repos..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full rounded-md border border-[#30363d] bg-[#0d1117] py-2 pl-9 pr-3 text-sm text-[#e6edf3] placeholder-[#8b949e] outline-none focus:border-[#58a6ff]"
+          />
+        </div>
+      </div>
 
       {loading ? (
         <div className="space-y-2">
@@ -259,18 +348,26 @@ export function Setup() {
             />
           ))}
         </div>
-      ) : repos.length === 0 ? (
+      ) : filterLoading ? (
+        <div className="flex items-center gap-2 py-8 text-sm text-[#8b949e]">
+          <i className="fa-solid fa-spinner fa-spin" />
+          Checking repos for workflows...
+        </div>
+      ) : filteredRepos.length === 0 ? (
         <div className="rounded-md border border-[#30363d] bg-[#161b22] px-6 py-12 text-center">
           <i className="fa-solid fa-folder-open mb-3 text-3xl text-[#30363d]" />
-          <p className="text-[#e6edf3]">No repositories found</p>
+          <p className="text-[#e6edf3]">
+            {filterWorkflows ? "No repos with workflows found" : "No repositories found"}
+          </p>
           <p className="mt-1 text-sm text-[#8b949e]">
-            Make sure your GitHub account has access to repositories with
-            Actions workflows.
+            {filterWorkflows
+              ? "Try turning off the workflows filter."
+              : "Make sure your GitHub account has access to repositories with Actions workflows."}
           </p>
         </div>
       ) : (
         <div className="space-y-2">
-          {repos.map((repo) => (
+          {filteredRepos.map((repo) => (
             <RepoCard
               key={repo.id}
               repo={repo}

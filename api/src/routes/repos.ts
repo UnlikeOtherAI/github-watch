@@ -29,7 +29,7 @@ repos.get("/available", async (c) => {
   return c.json({
     repos: ghRepos.map((r) => ({
       id: r.id,
-      full_name: r.full_name,
+      fullName: r.full_name,
       name: r.name,
       owner: r.owner.login,
       private: r.private,
