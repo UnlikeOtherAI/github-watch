@@ -73,6 +73,80 @@ function timeAgo(dateStr: string): string {
   return `${days}d ago`;
 }
 
+function FailureCard({ run }: { run: WorkflowRun }) {
+  return (
+    <a
+      href={run.htmlUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-md border border-[#f85149]/30 bg-[#161b22] p-4 transition-colors hover:border-[#f85149]/60 hover:bg-[#1c2128]"
+    >
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <i className="fa-solid fa-circle-xmark text-[#f85149]" />
+          <span className="text-sm font-semibold text-[#e6edf3]">
+            {run.workflowName}
+          </span>
+          <span className="text-xs text-[#8b949e]">#{run.runNumber}</span>
+        </div>
+        <span className="shrink-0 text-xs text-[#8b949e]">
+          {timeAgo(run.createdAt)}
+        </span>
+      </div>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs text-[#8b949e]">{run.repoFullName}</span>
+        <span className="rounded-full bg-[#1c3a5f] px-2 py-0.5 text-xs text-[#58a6ff]">
+          {run.branch}
+        </span>
+      </div>
+      {run.commitMessage && (
+        <p className="truncate text-xs text-[#8b949e]">
+          <i className="fa-solid fa-code-commit mr-1 text-[10px]" />
+          {run.commitMessage}
+        </p>
+      )}
+    </a>
+  );
+}
+
+function CompactRunRow({ run, border }: { run: WorkflowRun; border: boolean }) {
+  const si = statusIcon(run.status, run.conclusion);
+  return (
+    <a
+      href={run.htmlUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-center gap-2 px-3 py-2 transition-colors hover:bg-[#1c2128] ${border ? "border-t border-[#30363d]" : ""}`}
+    >
+      <i
+        className={`${si.icon} text-sm ${si.animate ? "animate-pulse" : ""}`}
+        style={{ color: si.color }}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-xs font-medium text-[#e6edf3]">
+            {run.workflowName}
+          </span>
+          <span className="shrink-0 text-[10px] text-[#8b949e]">
+            #{run.runNumber}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-[10px] text-[#8b949e]">
+            {run.repoFullName}
+          </span>
+          <span className="shrink-0 text-[10px] text-[#58a6ff]">
+            {run.branch}
+          </span>
+        </div>
+      </div>
+      <span className="shrink-0 text-[10px] text-[#8b949e]">
+        {timeAgo(run.createdAt)}
+      </span>
+    </a>
+  );
+}
+
 export function Dashboard() {
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,8 +168,12 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, [fetchRuns]);
 
+  const failures = runs.filter(
+    (r) => r.status === "completed" && r.conclusion === "failure",
+  );
+
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="w-full">
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-[#e6edf3]">Dashboard</h1>
@@ -113,14 +191,12 @@ export function Dashboard() {
         </button>
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-4 rounded-md border border-[#f85149]/40 bg-[#f85149]/10 px-4 py-3 text-sm text-[#f85149]">
           {error}
         </div>
       )}
 
-      {/* Loading skeleton */}
       {loading && runs.length === 0 && (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -132,7 +208,6 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && runs.length === 0 && !error && (
         <div className="rounded-md border border-[#30363d] bg-[#161b22] px-6 py-12 text-center">
           <i className="fa-solid fa-inbox mb-3 text-3xl text-[#30363d]" />
@@ -150,59 +225,57 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Run list */}
       {runs.length > 0 && (
-        <div className="overflow-hidden rounded-md border border-[#30363d]">
-          {runs.map((run, idx) => {
-            const si = statusIcon(run.status, run.conclusion);
-            return (
-              <a
-                key={run.id}
-                href={run.htmlUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`
-                  flex items-center gap-3 bg-[#161b22] px-4 py-3 transition-colors
-                  hover:bg-[#1c2128]
-                  ${idx > 0 ? "border-t border-[#30363d]" : ""}
-                `}
-              >
-                {/* Status icon */}
-                <i
-                  className={`${si.icon} text-base ${si.animate ? "animate-pulse-dot" : ""}`}
-                  style={{ color: si.color }}
-                />
-
-                {/* Info */}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-sm font-semibold text-[#e6edf3]">
-                      {run.workflowName}
-                    </span>
-                    <span className="text-xs text-[#8b949e]">
-                      #{run.runNumber}
-                    </span>
-                    <span className="font-mono text-xs text-[#8b949e]">
-                      {run.repoFullName}
-                    </span>
-                    <span className="rounded-full bg-[#1c3a5f] px-2 py-0.5 text-xs text-[#58a6ff]">
-                      {run.branch}
-                    </span>
-                  </div>
-                  {run.commitMessage && (
-                    <p className="mt-0.5 truncate text-xs text-[#8b949e]">
-                      {run.commitMessage}
-                    </p>
-                  )}
-                </div>
-
-                {/* Time */}
-                <span className="shrink-0 text-xs text-[#8b949e]">
-                  {timeAgo(run.createdAt)}
+        <div className="flex gap-4">
+          {/* Left: Failures */}
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 flex items-center gap-2">
+              <i className="fa-solid fa-circle-xmark text-sm text-[#f85149]" />
+              <h2 className="text-sm font-semibold text-[#e6edf3]">
+                Failures
+              </h2>
+              {failures.length > 0 && (
+                <span className="rounded-full bg-[#f85149]/15 px-2 py-0.5 text-xs font-medium text-[#f85149]">
+                  {failures.length}
                 </span>
-              </a>
-            );
-          })}
+              )}
+            </div>
+            {failures.length === 0 ? (
+              <div className="rounded-md border border-[#30363d] bg-[#161b22] px-6 py-10 text-center">
+                <i className="fa-solid fa-circle-check mb-2 text-2xl text-[#3fb950]" />
+                <p className="text-sm text-[#e6edf3]">All clear</p>
+                <p className="mt-1 text-xs text-[#8b949e]">
+                  No failed workflow runs.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {failures.map((run) => (
+                  <FailureCard key={run.id} run={run} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right: All runs */}
+          <div className="hidden w-[30%] shrink-0 lg:block">
+            <div className="mb-3 flex items-center gap-2">
+              <i className="fa-solid fa-list text-sm text-[#8b949e]" />
+              <h2 className="text-sm font-semibold text-[#e6edf3]">
+                All Runs
+              </h2>
+              <span className="rounded-full bg-[#30363d] px-2 py-0.5 text-xs text-[#8b949e]">
+                {runs.length}
+              </span>
+            </div>
+            <div className="overflow-hidden rounded-md border border-[#30363d] bg-[#161b22]">
+              <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                {runs.map((run, idx) => (
+                  <CompactRunRow key={run.id} run={run} border={idx > 0} />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -58,7 +58,20 @@ workflows.get("/runs", async (c) => {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
-  return c.json({ runs: allRuns });
+  return c.json({
+    runs: allRuns.map((run) => ({
+      id: run.id,
+      workflowName: run.name,
+      runNumber: run.run_number,
+      status: run.status,
+      conclusion: run.conclusion,
+      branch: run.head_branch,
+      commitMessage: run.head_commit?.message ?? null,
+      repoFullName: run.repoFullName,
+      htmlUrl: run.html_url,
+      createdAt: run.created_at,
+    })),
+  });
 });
 
 export { workflows };

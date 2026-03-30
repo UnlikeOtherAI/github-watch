@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useUser } from "../hooks/useUser";
 
@@ -7,13 +7,33 @@ const navItems = [
   { to: "/setup", icon: "fa-solid fa-gear", label: "Setup" },
 ];
 
+function getTheme(): "dark" | "light" {
+  const cookie = document.cookie.match(/(?:^|; )ghw_theme=([^;]*)/);
+  return cookie?.[1] === "light" ? "light" : "dark";
+}
+
+function setTheme(theme: "dark" | "light") {
+  document.documentElement.setAttribute("data-theme", theme);
+  document.cookie = `ghw_theme=${theme};path=/;max-age=${365 * 24 * 60 * 60}`;
+}
+
 export function Layout() {
   const { user } = useUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setThemeState] = useState<"dark" | "light">(getTheme);
   const location = useLocation();
 
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, []);
+
+  function toggleTheme(t: "dark" | "light") {
+    setTheme(t);
+    setThemeState(t);
+  }
+
   return (
-    <div className="flex h-screen bg-[#0d1117]">
+    <div className="flex h-screen" style={{ backgroundColor: "var(--ghw-bg)" }}>
       {/* Overlay */}
       {sidebarOpen && (
         <div
@@ -25,15 +45,23 @@ export function Layout() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-[#30363d] bg-[#161b22]
-          transition-transform duration-200 ease-in-out
+          fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r transition-transform duration-200 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
+        style={{
+          backgroundColor: "var(--ghw-bg-card)",
+          borderColor: "var(--ghw-border)",
+        }}
       >
         {/* Logo */}
-        <div className="flex h-14 items-center gap-2 border-b border-[#30363d] px-4">
-          <i className="fa-solid fa-eye text-[#58a6ff]" />
-          <span className="text-base font-bold text-white">GH-Watch</span>
+        <div
+          className="flex h-14 items-center gap-2 border-b px-4"
+          style={{ borderColor: "var(--ghw-border)" }}
+        >
+          <i className="fa-solid fa-eye" style={{ color: "var(--ghw-blue)" }} />
+          <span className="text-base font-bold" style={{ color: "var(--ghw-text)" }}>
+            GH-Watch
+          </span>
         </div>
 
         {/* Nav */}
@@ -49,14 +77,13 @@ export function Layout() {
                 key={item.to}
                 to={item.to}
                 onClick={() => setSidebarOpen(false)}
-                className={`
-                  flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors
-                  ${
-                    isActive
-                      ? "border-l-[3px] border-l-[#58a6ff] bg-[#1c2128] pl-[9px] text-white"
-                      : "border-l-[3px] border-l-transparent pl-[9px] text-[#8b949e] hover:bg-[#1c2128] hover:text-[#e6edf3]"
-                  }
-                `}
+                className="flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors"
+                style={{
+                  borderLeft: isActive ? "3px solid var(--ghw-blue)" : "3px solid transparent",
+                  backgroundColor: isActive ? "var(--ghw-bg-elevated)" : "transparent",
+                  color: isActive ? "var(--ghw-text)" : "var(--ghw-text-muted)",
+                  paddingLeft: "9px",
+                }}
               >
                 <i className={`${item.icon} w-4 text-center`} />
                 {item.label}
@@ -65,8 +92,37 @@ export function Layout() {
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-[#30363d] px-3 py-3">
+        {/* Theme + Logout */}
+        <div className="border-t px-3 py-3" style={{ borderColor: "var(--ghw-border)" }}>
+          {/* Theme toggle */}
+          <div className="mb-2 flex gap-1 px-3">
+            <button
+              onClick={() => toggleTheme("light")}
+              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+              style={{
+                backgroundColor: theme === "light" ? "var(--ghw-bg-elevated)" : "transparent",
+                color: theme === "light" ? "var(--ghw-yellow)" : "var(--ghw-text-muted)",
+                border: theme === "light" ? "1px solid var(--ghw-border)" : "1px solid transparent",
+              }}
+              title="Light mode"
+            >
+              <i className="fa-solid fa-sun text-sm" />
+            </button>
+            <button
+              onClick={() => toggleTheme("dark")}
+              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+              style={{
+                backgroundColor: theme === "dark" ? "var(--ghw-bg-elevated)" : "transparent",
+                color: theme === "dark" ? "var(--ghw-blue)" : "var(--ghw-text-muted)",
+                border: theme === "dark" ? "1px solid var(--ghw-border)" : "1px solid transparent",
+              }}
+              title="Dark mode"
+            >
+              <i className="fa-solid fa-moon text-sm" />
+            </button>
+          </div>
+
+          {/* Logout */}
           <a
             href="/api/auth/logout"
             onClick={(e) => {
@@ -78,7 +134,8 @@ export function Layout() {
                 window.location.href = "/";
               });
             }}
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-[#8b949e] transition-colors hover:bg-[#1c2128] hover:text-[#e6edf3]"
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors"
+            style={{ color: "var(--ghw-text-muted)" }}
           >
             <i className="fa-solid fa-right-from-bracket w-4 text-center" />
             Logout
@@ -89,19 +146,28 @@ export function Layout() {
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-[#30363d] bg-[#161b22] px-4">
+        <header
+          className="flex h-14 shrink-0 items-center justify-between border-b px-4"
+          style={{
+            backgroundColor: "var(--ghw-bg-card)",
+            borderColor: "var(--ghw-border)",
+          }}
+        >
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-md p-2 text-[#8b949e] hover:text-[#e6edf3]"
+            className="rounded-md p-2 transition-colors"
+            style={{ color: "var(--ghw-text-muted)" }}
           >
             <i className="fa-solid fa-bars" />
           </button>
           <div className="flex-1" />
 
-          {/* User avatar */}
           {user && (
             <div className="flex items-center gap-2">
-              <span className="hidden text-sm text-[#8b949e] sm:inline">
+              <span
+                className="hidden text-sm sm:inline"
+                style={{ color: "var(--ghw-text-muted)" }}
+              >
                 {user.login}
               </span>
               {user.avatarUrl ? (
@@ -111,7 +177,13 @@ export function Layout() {
                   className="h-7 w-7 rounded-full"
                 />
               ) : (
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#30363d] text-xs text-[#8b949e]">
+                <div
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-xs"
+                  style={{
+                    backgroundColor: "var(--ghw-border)",
+                    color: "var(--ghw-text-muted)",
+                  }}
+                >
                   {user.login[0]?.toUpperCase()}
                 </div>
               )}
