@@ -37,7 +37,7 @@ export function Layout() {
       {/* Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/50"
+          className="fixed inset-0 z-20 bg-black/30 backdrop-blur-[2px]"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -92,37 +92,36 @@ export function Layout() {
           })}
         </nav>
 
-        {/* Theme + Logout */}
-        <div className="border-t px-3 py-3" style={{ borderColor: "var(--ghw-border)" }}>
-          {/* Theme toggle */}
-          <div className="mb-2 flex gap-1 px-3">
-            <button
-              onClick={() => toggleTheme("light")}
-              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-              style={{
-                backgroundColor: theme === "light" ? "var(--ghw-bg-elevated)" : "transparent",
-                color: theme === "light" ? "var(--ghw-yellow)" : "var(--ghw-text-muted)",
-                border: theme === "light" ? "1px solid var(--ghw-border)" : "1px solid transparent",
-              }}
-              title="Light mode"
-            >
-              <i className="fa-solid fa-sun text-sm" />
-            </button>
-            <button
-              onClick={() => toggleTheme("dark")}
-              className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
-              style={{
-                backgroundColor: theme === "dark" ? "var(--ghw-bg-elevated)" : "transparent",
-                color: theme === "dark" ? "var(--ghw-blue)" : "var(--ghw-text-muted)",
-                border: theme === "dark" ? "1px solid var(--ghw-border)" : "1px solid transparent",
-              }}
-              title="Dark mode"
-            >
-              <i className="fa-solid fa-moon text-sm" />
-            </button>
-          </div>
+        {/* Theme toggle */}
+        <div className="flex justify-center gap-1 px-3 py-3">
+          <button
+            onClick={() => toggleTheme("light")}
+            className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            style={{
+              backgroundColor: theme === "light" ? "var(--ghw-bg-elevated)" : "transparent",
+              color: theme === "light" ? "var(--ghw-yellow)" : "var(--ghw-text-muted)",
+              border: theme === "light" ? "1px solid var(--ghw-border)" : "1px solid transparent",
+            }}
+            title="Light mode"
+          >
+            <i className="fa-solid fa-sun text-sm" />
+          </button>
+          <button
+            onClick={() => toggleTheme("dark")}
+            className="flex h-8 w-8 items-center justify-center rounded-md transition-colors"
+            style={{
+              backgroundColor: theme === "dark" ? "var(--ghw-bg-elevated)" : "transparent",
+              color: theme === "dark" ? "var(--ghw-blue)" : "var(--ghw-text-muted)",
+              border: theme === "dark" ? "1px solid var(--ghw-border)" : "1px solid transparent",
+            }}
+            title="Dark mode"
+          >
+            <i className="fa-solid fa-moon text-sm" />
+          </button>
+        </div>
 
-          {/* Logout */}
+        {/* Logout */}
+        <div className="border-t px-3 py-3" style={{ borderColor: "var(--ghw-border)" }}>
           <a
             href="/api/auth/logout"
             onClick={(e) => {
@@ -134,10 +133,10 @@ export function Layout() {
                 window.location.href = "/";
               });
             }}
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors"
+            className="flex items-center justify-center gap-2 rounded-md py-2 text-sm transition-colors"
             style={{ color: "var(--ghw-text-muted)" }}
           >
-            <i className="fa-solid fa-right-from-bracket w-4 text-center" />
+            <i className="fa-solid fa-right-from-bracket text-xs" />
             Logout
           </a>
         </div>
